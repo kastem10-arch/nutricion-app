@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>App Nutrición — Analizador de etiquetas y Calculadora de kcal</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --green:#1A3C34;--sage:#52B788;--mint:#B7E4C7;--cream:#F8FBF9;
+    --text:#1E293B;--sub:#475569;--gray:#64748B;--lgray:#E2E8F0;
+    --white:#FFFFFF;--red:#E24B4A;--amber:#EF9F27;--blue:#378ADD;
+    --bg-green:#E8F5EE;--bg-amber:#FAEEDA;--bg-red:#FCEBEB;--bg-blue:#E6F1FB;
+  }
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F1F5F2;color:var(--text);min-height:100vh}
+  .app-wrap{max-width:720px;margin:0 auto;padding:24px 16px 48px}
+  .hero{text-align:center;padding:32px 0 24px}
+  .hero-icon{width:56px;height:56px;background:var(--green);border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:24px;color:var(--mint)}
+  .hero h1{font-size:24px;font-weight:700;color:var(--green);margin-bottom:6px}
+  .hero p{font-size:14px;color:var(--sub)}
+  .tabs{display:flex;background:var(--white);border-radius:14px;padding:6px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,.07);gap:4px}
+  .tab-btn{flex:1;padding:10px 8px;border:none;background:transparent;cursor:pointer;font-size:14px;font-weight:500;color:var(--gray);border-radius:10px;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px}
+  .tab-btn.active{background:var(--green);color:var(--white)}
+  .panel{display:none}.panel.active{display:block}
+  .card{background:var(--white);border-radius:14px;padding:20px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+  .section-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--gray);margin-bottom:12px}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+  @media(max-width:480px){.field-row{grid-template-columns:1fr}}
+  label{font-size:13px;color:var(--sub);display:block;margin-bottom:4px}
+  input[type=number],select{width:100%;padding:9px 12px;border:1px solid var(--lgray);border-radius:9px;font-size:14px;background:var(--white);color:var(--text);outline:none;transition:border .2s}
+  input[type=number]:focus,select:focus{border-color:var(--sage)}
+  .btn{width:100%;padding:12px;border:none;border-radius:10px;background:var(--green);color:var(--white);font-size:15px;font-weight:600;cursor:pointer;margin-top:4px;transition:opacity .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+  .btn:hover{opacity:.88}
+  .metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px}
+  .metric{background:var(--cream);border-radius:12px;padding:14px;text-align:center;border:1px solid var(--lgray)}
+  .metric-val{font-size:24px;font-weight:700;color:var(--green)}
+  .metric-unit{font-size:11px;color:var(--gray)}
+  .metric-lbl{font-size:12px;color:var(--sub);margin-top:3px}
+  .tl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+  .tl{border-radius:10px;padding:12px 8px;text-align:center;border:1px solid var(--lgray);background:var(--white)}
+  .tl-dot{width:22px;height:22px;border-radius:50%;margin:0 auto 6px}
+  .tl-name{font-size:11px;color:var(--sub);font-weight:500}
+  .tl-val{font-size:14px;font-weight:600;margin:3px 0 2px}
+  .tl-lbl{font-size:10px;font-weight:500}
+  .verdict{padding:12px 16px;border-radius:10px;font-size:14px;margin-bottom:16px;display:flex;align-items:flex-start;gap:10px}
+  .verdict.green{background:var(--bg-green);color:#0F6E56}.verdict.amber{background:var(--bg-amber);color:#854F0B}.verdict.red{background:var(--bg-red);color:#A32D2D}
+  .verdict-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+  .formula-box{background:var(--cream);border-radius:10px;padding:12px 14px;margin:8px 0;border-left:3px solid var(--sage)}
+  .formula-title{font-size:11px;font-weight:600;color:var(--sage);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
+  .formula-text{font-size:13px;color:var(--text);line-height:1.6;font-family:'Courier New',monospace}
+  .progress-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--lgray)}
+  .progress-row:last-child{border-bottom:none}
+  .pr-name{flex:0 0 140px;font-size:13px}
+  .pr-bar-wrap{flex:1;background:var(--cream);border-radius:100px;height:8px;overflow:hidden}
+  .pr-bar{height:100%;border-radius:100px;transition:width .5s}
+  .pr-val{font-size:12px;color:var(--sub);min-width:80px;text-align:right}
+  .imc-bar{display:flex;height:10px;border-radius:100px;overflow:hidden;margin:10px 0 3px}
+  .imc-mwrap{position:relative;height:14px;margin-bottom:4px}
+  .imc-marker{position:absolute;width:3px;height:18px;background:var(--text);border-radius:2px;top:-2px;transition:left .5s}
+  .scale-lbl{display:flex;justify-content:space-between;font-size:10px;color:var(--gray);margin-bottom:10px}
+  .reparto-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px}
+  @media(max-width:500px){.reparto-grid{grid-template-columns:repeat(3,1fr)}}
+  .rep{background:var(--cream);border-radius:10px;padding:10px 6px;text-align:center;border:1px solid var(--lgray)}
+  .rep-meal{font-size:10px;color:var(--gray);margin-bottom:4px}
+  .rep-kcal{font-size:15px;font-weight:700;color:var(--green)}
+  .rep-pct{font-size:10px;color:var(--sub)}
+  .imc-badge{display:inline-block;padding:4px 12px;border-radius:100px;font-size:13px;font-weight:600;margin-left:8px}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+  @media(max-width:480px){.two-col{grid-template-columns:1fr}}
+  .ingred-box{border-radius:10px;padding:12px}
+  .ingred-title{font-size:12px;font-weight:600;margin-bottom:6px}
+  .ingred-list{font-size:12px;line-height:1.8;color:var(--sub)}
+  .ns-bar{display:flex;gap:4px;margin-bottom:10px}
+  .ns-letter{flex:1;border-radius:8px;padding:10px 4px;text-align:center;color:#fff;font-weight:700;font-size:18px}
+  .tip-list{list-style:none}
+  .tip-list li{font-size:13px;padding:6px 0;border-bottom:1px solid var(--lgray);color:var(--sub);display:flex;gap:8px;align-items:flex-start}
+  .tip-list li:last-child{border-bottom:none}
+  .hidden{display:none}
+  .divider{border:none;border-top:1px solid var(--lgray);margin:20px 0}
+  .badge-ok{background:var(--bg-green);color:#0F6E56;padding:2px 8px;border-radius:100px;font-size:11px;font-weight:600}
+  .badge-warn{background:var(--bg-amber);color:#854F0B;padding:2px 8px;border-radius:100px;font-size:11px;font-weight:600}
+  .badge-bad{background:var(--bg-red);color:#A32D2D;padding:2px 8px;border-radius:100px;font-size:11px;font-weight:600}
+  .footer{text-align:center;font-size:12px;color:var(--gray);margin-top:32px;padding-top:16px;border-top:1px solid var(--lgray)}
+</style>
+</head>
+<body>
+<div class="app-wrap">
+
+  <div class="hero">
+    <div class="hero-icon"><i class="fa-solid fa-apple-whole"></i></div>
+    <h1>App de Nutrición</h1>
+    <p>Analiza etiquetas de productos · Calcula tus necesidades calóricas</p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('et',this)">
+      <i class="fa-solid fa-barcode"></i> Analizador de etiquetas
+    </button>
+    <button class="tab-btn" onclick="showTab('kcal',this)">
+      <i class="fa-solid fa-calculator"></i> Calculadora de kcal
+    </button>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <!-- PANEL 1 — ETIQUETAS                               -->
+  <!-- ═══════════════════════════════════════════════════ -->
+  <div class="panel active" id="panel-et">
+
+    <div class="card">
+      <div class="section-label">Datos de la etiqueta (por 100g)</div>
+      <div class="field-row">
+        <div><label>Calorías (kcal)</label><input type="number" id="et-kcal" placeholder="ej. 250" min="0"></div>
+        <div><label>Grasas totales (g)</label><input type="number" id="et-grasas" placeholder="ej. 10" min="0"></div>
+      </div>
+      <div class="field-row">
+        <div><label>— de las cuales saturadas (g)</label><input type="number" id="et-sat" placeholder="ej. 3" min="0"></div>
+        <div><label>Hidratos de carbono (g)</label><input type="number" id="et-hc" placeholder="ej. 30" min="0"></div>
+      </div>
+      <div class="field-row">
+        <div><label>— de los cuales azúcares (g)</label><input type="number" id="et-azucar" placeholder="ej. 8" min="0"></div>
+        <div><label>Proteínas (g)</label><input type="number" id="et-prot" placeholder="ej. 15" min="0"></div>
+      </div>
+      <div class="field-row">
+        <div><label>Fibra (g)</label><input type="number" id="et-fibra" placeholder="ej. 3" min="0"></div>
+        <div><label>Sal (g)</label><input type="number" id="et-sal" placeholder="ej. 0.5" min="0"></div>
+      </div>
+      <button class="btn" onclick="analizarEtiqueta()"><i class="fa-solid fa-magnifying-glass"></i> Analizar producto</button>
+    </div>
+
+    <div id="et-resultado" class="hidden">
+      <div class="card">
+        <div class="section-label">Semáforo nutricional</div>
+        <div class="tl-grid" id="tl-grid"></div>
+        <div id="et-veredicto"></div>
+      </div>
+
+      <div class="card">
+        <div class="section-label">Umbrales de referencia (por 100g)</div>
+        <table style="width:100%;font-size:13px;border-collapse:collapse">
+          <thead><tr style="border-bottom:2px solid var(--lgray)">
+            <th style="text-align:left;padding:6px 4px;color:var(--sub)">Nutriente</th>
+            <th style="padding:6px 4px;color:#0F6E56">Bajo ✓</th>
+            <th style="padding:6px 4px;color:#854F0B">Medio</th>
+            <th style="padding:6px 4px;color:#A32D2D">Alto ⚠</th>
+          </tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid var(--lgray)"><td style="padding:6px 4px">Grasas totales</td><td style="text-align:center;padding:6px 4px">&lt;3g</td><td style="text-align:center;padding:6px 4px">3–17,5g</td><td style="text-align:center;padding:6px 4px">&gt;17,5g</td></tr>
+            <tr style="border-bottom:1px solid var(--lgray)"><td style="padding:6px 4px">Grasas saturadas</td><td style="text-align:center;padding:6px 4px">&lt;1,5g</td><td style="text-align:center;padding:6px 4px">1,5–5g</td><td style="text-align:center;padding:6px 4px">&gt;5g</td></tr>
+            <tr style="border-bottom:1px solid var(--lgray)"><td style="padding:6px 4px">Azúcares</td><td style="text-align:center;padding:6px 4px">&lt;5g</td><td style="text-align:center;padding:6px 4px">5–22,5g</td><td style="text-align:center;padding:6px 4px">&gt;22,5g</td></tr>
+            <tr style="border-bottom:1px solid var(--lgray)"><td style="padding:6px 4px">Sal</td><td style="text-align:center;padding:6px 4px">&lt;0,3g</td><td style="text-align:center;padding:6px 4px">0,3–1,5g</td><td style="text-align:center;padding:6px 4px">&gt;1,5g</td></tr>
+            <tr><td style="padding:6px 4px">Fibra</td><td style="text-align:center;padding:6px 4px">&gt;6g ✓</td><td style="text-align:center;padding:6px 4px">3–6g</td><td style="text-align:center;padding:6px 4px">&lt;3g</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="section-label">Lista de ingredientes: señales clave</div>
+        <div class="two-col">
+          <div class="ingred-box" style="background:var(--bg-red)">
+            <div class="ingred-title" style="color:#A32D2D"><i class="fa-solid fa-triangle-exclamation"></i> Evitar o limitar</div>
+            <div class="ingred-list">Azúcar entre los 3 primeros<br>Jarabe de maíz de alta fructosa<br>Aceites parcialmente hidrogenados<br>Colorantes artificiales (E-1xx)<br>Más de 5 ingredientes desconocidos</div>
+          </div>
+          <div class="ingred-box" style="background:var(--bg-green)">
+            <div class="ingred-title" style="color:#0F6E56"><i class="fa-solid fa-circle-check"></i> Señales positivas</div>
+            <div class="ingred-list">Ingredientes reconocibles<br>Pocos ingredientes (&lt;5)<br>Aceite de oliva o girasol sin hidratar<br>Fibra como ingrediente principal<br>Sin conservantes ni potenciadores</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-label">Sistema Nutri-Score</div>
+        <div class="ns-bar">
+          <div class="ns-letter" style="background:#1D8F6E">A</div>
+          <div class="ns-letter" style="background:#86BB3C">B</div>
+          <div class="ns-letter" style="background:#F5CD00;color:#333">C</div>
+          <div class="ns-letter" style="background:#EF7D00">D</div>
+          <div class="ns-letter" style="background:#E63312">E</div>
+        </div>
+        <p style="font-size:13px;color:var(--sub);line-height:1.6">Suma puntos negativos (calorías, azúcares, grasas saturadas, sal) y puntos positivos (fibra, proteínas, frutas/verduras). Busca siempre la letra A o B. Desde 2023 es obligatorio en España para muchas categorías.</p>
+      </div>
+
+      <div class="card">
+        <div class="section-label">Sistema NOVA: grado de procesamiento</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px">
+          <div style="padding:10px;border-radius:10px;border-top:3px solid #1D9E75;border:1px solid var(--lgray);border-top-width:3px">
+            <div style="font-weight:600;font-size:13px;margin-bottom:4px">NOVA 1</div>
+            <div style="font-size:12px;color:var(--sub)">Frutas, verduras, carnes frescas, huevos — mínimamente procesados</div>
+          </div>
+          <div style="padding:10px;border-radius:10px;border:1px solid var(--lgray);border-top:3px solid #86BB3C">
+            <div style="font-weight:600;font-size:13px;margin-bottom:4px">NOVA 2</div>
+            <div style="font-size:12px;color:var(--sub)">Aceite, harina, sal, azúcar — ingredientes culinarios</div>
+          </div>
+          <div style="padding:10px;border-radius:10px;border:1px solid var(--lgray);border-top:3px solid #EF9F27">
+            <div style="font-weight:600;font-size:13px;margin-bottom:4px">NOVA 3</div>
+            <div style="font-size:12px;color:var(--sub)">Conservas, quesos, embutidos artesanales — procesados</div>
+          </div>
+          <div style="padding:10px;border-radius:10px;border:1px solid var(--lgray);border-top:3px solid #E24B4A">
+            <div style="font-weight:600;font-size:13px;margin-bottom:4px">NOVA 4</div>
+            <div style="font-size:12px;color:var(--sub)">Bollería, refrescos, snacks — <strong>ultraprocesados: limitar</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <!-- PANEL 2 — CALCULADORA KCAL                        -->
+  <!-- ═══════════════════════════════════════════════════ -->
+  <div class="panel" id="panel-kcal">
+
+    <div class="card">
+      <div class="section-label">Tus datos</div>
+      <div class="field-row">
+        <div><label>Sexo</label>
+          <select id="sexo"><option value="h">Hombre</option><option value="m">Mujer</option></select>
+        </div>
+        <div><label>Edad (años)</label><input type="number" id="edad" placeholder="ej. 25" min="15" max="90"></div>
+      </div>
+      <div class="field-row">
+        <div><label>Peso (kg)</label><input type="number" id="peso" placeholder="ej. 70" min="30" max="200"></div>
+        <div><label>Altura (cm)</label><input type="number" id="altura" placeholder="ej. 170" min="100" max="220"></div>
+      </div>
+      <div style="margin-bottom:12px">
+        <label>Nivel de actividad física</label>
+        <select id="actividad">
+          <option value="1.2">Sedentario — sin ejercicio</option>
+          <option value="1.375">Ligero — 1-3 días/semana</option>
+          <option value="1.55" selected>Moderado — 3-5 días/semana</option>
+          <option value="1.725">Activo — 6-7 días/semana</option>
+          <option value="1.9">Muy activo — atleta o trabajo físico</option>
+        </select>
+      </div>
+      <div style="margin-bottom:12px">
+        <label>Objetivo</label>
+        <select id="objetivo">
+          <option value="-500">Perder peso — déficit de 500 kcal</option>
+          <option value="0" selected>Mantenimiento</option>
+          <option value="300">Ganar músculo — superávit de 300 kcal</option>
+        </select>
+      </div>
+      <button class="btn" onclick="calcularKcal()"><i class="fa-solid fa-fire-flame-curved"></i> Calcular mis necesidades</button>
+    </div>
+
+    <div id="kcal-resultado" class="hidden">
+
+      <div class="metric-grid" id="kcal-metrics"></div>
+
+      <div class="card">
+        <div class="section-label">IMC — Índice de Masa Corporal</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+          <span style="font-size:32px;font-weight:700;color:var(--green)" id="imc-num"></span>
+          <span class="imc-badge" id="imc-badge"></span>
+        </div>
+        <div class="imc-bar" id="imc-bar"></div>
+        <div class="imc-mwrap" id="imc-mwrap"></div>
+        <div class="scale-lbl"><span>Bajo peso &lt;18,5</span><span>Normal 18,5–25</span><span>Sobrepeso 25–30</span><span>Obesidad &gt;30</span></div>
+        <div id="imc-msg" class="verdict"></div>
+        <div class="formula-box">
+          <div class="formula-title">Fórmula del IMC</div>
+          <div class="formula-text">IMC = Peso (kg) ÷ Altura² (m²)</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-label">Fórmula Mifflin-St Jeor (metabolismo basal)</div>
+        <div class="formula-box">
+          <div class="formula-title" id="tmb-formula-title"></div>
+          <div class="formula-text" id="tmb-formula-text"></div>
+        </div>
+        <div class="formula-box">
+          <div class="formula-title">Gasto calórico total (TDEE)</div>
+          <div class="formula-text" id="tdee-formula-text"></div>
+        </div>
+        <div class="formula-box">
+          <div class="formula-title">Objetivo calórico diario</div>
+          <div class="formula-text" id="obj-formula-text"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-label">Distribución de macronutrientes</div>
+        <div id="macros-bars"></div>
+      </div>
+
+      <div class="card">
+        <div class="section-label">Reparto por comida</div>
+        <div class="reparto-grid" id="reparto-grid"></div>
+        <p style="font-size:12px;color:var(--gray);margin-top:4px">Distribución orientativa. Adaptar según hábitos y horarios personales.</p>
+      </div>
+
+      <div class="card" style="background:var(--bg-green)">
+        <div style="font-size:13px;color:#0F6E56;line-height:1.7">
+          <strong>Para trabajar en clase:</strong> pide a tus alumnas que anoten todo lo que comen durante 3 días y comparen su ingesta real con el resultado de esta calculadora. ¿Están por encima o por debajo de sus necesidades? ¿Qué macronutriente falta más?
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="footer">
+    App de nutrición — uso didáctico · Fuentes: OMS, EFSA, AESAN, Mifflin-St Jeor (1990)<br>
+    No sustituye el consejo de un dietista-nutricionista titulado.
+  </div>
+</div>
+
+<script>
+function showTab(id,btn){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('panel-'+id).classList.add('active');
+}
+
+function sc(v,lo,hi){return v<=lo?'green':v<=hi?'amber':'red'}
+function scR(v,lo,hi){return v>=hi?'green':v>=lo?'amber':'red'}
+
+function analizarEtiqueta(){
+  const g=n=>parseFloat(document.getElementById(n).value)||0;
+  const grasas=g('et-grasas'),sat=g('et-sat'),azucar=g('et-azucar'),sal=g('et-sal'),fibra=g('et-fibra'),prot=g('et-prot');
+  const col={green:'#1D9E75',amber:'#EF9F27',red:'#E24B4A'};
+  const lbl={green:'Bien',amber:'Moderado',red:'Cuidado'};
+  const items=[
+    {name:'Grasas',val:grasas+'g',s:sc(grasas,3,17.5)},
+    {name:'Saturadas',val:sat+'g',s:sc(sat,1.5,5)},
+    {name:'Azúcares',val:azucar+'g',s:sc(azucar,5,22.5)},
+    {name:'Sal',val:sal+'g',s:sc(sal,0.3,1.5)},
+    {name:'Fibra',val:fibra+'g',s:scR(fibra,3,6)},
+    {name:'Proteínas',val:prot+'g',s:scR(prot,10,20)},
+  ];
+  document.getElementById('tl-grid').innerHTML=items.map(it=>`
+    <div class="tl">
+      <div class="tl-dot" style="background:${col[it.s]}"></div>
+      <div class="tl-name">${it.name}</div>
+      <div class="tl-val">${it.val}</div>
+      <div class="tl-lbl" style="color:${col[it.s]}">${lbl[it.s]}</div>
+    </div>`).join('');
+  const reds=items.filter(i=>i.s==='red').length;
+  let vtxt,vcls,vico;
+  if(reds>=3){vtxt='Producto poco recomendable para el día a día. Varios indicadores en zona roja. Consúmelo de forma muy ocasional.';vcls='red';vico='fa-circle-xmark';}
+  else if(reds>=1){vtxt='Producto aceptable con matices. Tiene algún indicador elevado. Consúmelo con moderación.';vcls='amber';vico='fa-triangle-exclamation';}
+  else{vtxt='Producto nutricionalmente favorable. La mayoría de indicadores están en verde. Buena opción para el consumo habitual.';vcls='green';vico='fa-circle-check';}
+  document.getElementById('et-veredicto').innerHTML=`<div class="verdict ${vcls}"><i class="verdict-icon fa-solid ${vico}"></i><div>${vtxt}</div></div>`;
+  document.getElementById('et-resultado').classList.remove('hidden');
+}
+
+function calcularKcal(){
+  const sexo=document.getElementById('sexo').value;
+  const edad=parseFloat(document.getElementById('edad').value)||25;
+  const peso=parseFloat(document.getElementById('peso').value)||70;
+  const alt=parseFloat(document.getElementById('altura').value)||170;
+  const act=parseFloat(document.getElementById('actividad').value);
+  const obj=parseInt(document.getElementById('objetivo').value);
+  const imc=peso/((alt/100)**2);
+  let tmb,ftit,ftxt;
+  if(sexo==='h'){
+    tmb=10*peso+6.25*alt-5*edad+5;
+    ftit='Hombre — Mifflin-St Jeor';
+    ftxt=`TMB = (10 × ${peso}) + (6,25 × ${alt}) − (5 × ${edad}) + 5\n     = ${Math.round(10*peso)} + ${Math.round(6.25*alt)} − ${5*edad} + 5\n     = ${Math.round(tmb)} kcal/día`;
+  } else {
+    tmb=10*peso+6.25*alt-5*edad-161;
+    ftit='Mujer — Mifflin-St Jeor';
+    ftxt=`TMB = (10 × ${peso}) + (6,25 × ${alt}) − (5 × ${edad}) − 161\n     = ${Math.round(10*peso)} + ${Math.round(6.25*alt)} − ${5*edad} − 161\n     = ${Math.round(tmb)} kcal/día`;
+  }
+  const tdee=tmb*act;
+  const kcalObj=Math.max(1200,tdee+obj);
+  const prot=Math.round(peso*1.8);
+  const grasas=Math.round((kcalObj*0.28)/9);
+  const hc=Math.round((kcalObj-prot*4-grasas*9)/4);
+  let imcCat,imcBg,imcColor,imcMsg,imcMsgCls;
+  if(imc<18.5){imcCat='Bajo peso';imcBg=var_('bg-blue');imcColor='#185FA5';imcMsg='Tu IMC indica bajo peso. Consulta con un profesional para descartar causas subyacentes.';imcMsgCls='amber';}
+  else if(imc<25){imcCat='Normopeso';imcBg='#E8F5EE';imcColor='#0F6E56';imcMsg='Tu IMC está en el rango saludable. ¡Bien! Mantén tus hábitos actuales.';imcMsgCls='green';}
+  else if(imc<30){imcCat='Sobrepeso';imcBg='#FAEEDA';imcColor='#854F0B';imcMsg='Tu IMC indica sobrepeso. Un déficit calórico moderado combinado con ejercicio puede ayudar.';imcMsgCls='amber';}
+  else{imcCat='Obesidad';imcBg='#FCEBEB';imcColor='#A32D2D';imcMsg='Tu IMC indica obesidad. Consulta con un médico y un dietista-nutricionista para un plan personalizado.';imcMsgCls='red';}
+  document.getElementById('kcal-metrics').innerHTML=`
+    <div class="metric"><div class="metric-val">${imc.toFixed(1)}<span class="metric-unit"> kg/m²</span></div><div class="metric-lbl">IMC</div></div>
+    <div class="metric"><div class="metric-val">${Math.round(tmb)}<span class="metric-unit"> kcal</span></div><div class="metric-lbl">TMB (basal)</div></div>
+    <div class="metric"><div class="metric-val">${Math.round(tdee)}<span class="metric-unit"> kcal</span></div><div class="metric-lbl">TDEE (total)</div></div>
+    <div class="metric"><div class="metric-val">${Math.round(kcalObj)}<span class="metric-unit"> kcal</span></div><div class="metric-lbl">Objetivo diario</div></div>
+  `;
+  document.getElementById('imc-num').textContent=imc.toFixed(1);
+  const bd=document.getElementById('imc-badge');
+  bd.textContent=imcCat;bd.style.background=imcBg;bd.style.color=imcColor;
+  const mp=Math.min(97,Math.max(1,((imc-14)/(40-14))*100));
+  document.getElementById('imc-bar').innerHTML=`
+    <div style="flex:1;background:#EBF3FB"></div><div style="flex:1.5;background:#E8F5EE"></div>
+    <div style="flex:1;background:#FAEEDA"></div><div style="flex:1.5;background:#FCEBEB"></div>`;
+  document.getElementById('imc-mwrap').innerHTML=`<div class="imc-marker" style="left:calc(${mp}% - 1.5px)"></div>`;
+  const im=document.getElementById('imc-msg');
+  im.className='verdict '+imcMsgCls;im.textContent=imcMsg;
+  document.getElementById('tmb-formula-title').textContent=ftit;
+  document.getElementById('tmb-formula-text').textContent=ftxt;
+  document.getElementById('tdee-formula-text').textContent=`TDEE = TMB × Factor actividad\n     = ${Math.round(tmb)} × ${act} = ${Math.round(tdee)} kcal/día`;
+  const objLabel=obj<0?`Déficit −${Math.abs(obj)} kcal`:obj>0?`Superávit +${obj} kcal`:'Mantenimiento';
+  document.getElementById('obj-formula-text').textContent=`Objetivo = TDEE ${obj>=0?'+':''}${obj} kcal\n         = ${Math.round(tdee)} ${obj>=0?'+':''}${obj} = ${Math.round(kcalObj)} kcal/día\n         (${objLabel})`;
+  const macros=[
+    {name:'Proteínas',g:prot,color:'#378ADD',pct:Math.round((prot*4/kcalObj)*100)},
+    {name:'Hidratos de carbono',g:hc,color:'#1D9E75',pct:Math.round((hc*4/kcalObj)*100)},
+    {name:'Grasas',g:grasas,color:'#EF9F27',pct:Math.round((grasas*9/kcalObj)*100)},
+  ];
+  document.getElementById('macros-bars').innerHTML=macros.map(m=>`
+    <div class="progress-row">
+      <div class="pr-name">${m.name}</div>
+      <div class="pr-bar-wrap"><div class="pr-bar" style="width:${m.pct}%;background:${m.color}"></div></div>
+      <div class="pr-val">${m.g}g · ${m.pct}%</div>
+    </div>`).join('');
+  const rep=[{m:'Desayuno',p:25},{m:'Media mañana',p:10},{m:'Comida',p:35},{m:'Merienda',p:10},{m:'Cena',p:20}];
+  document.getElementById('reparto-grid').innerHTML=rep.map(r=>`
+    <div class="rep"><div class="rep-meal">${r.m}</div><div class="rep-kcal">${Math.round(kcalObj*r.p/100)}</div><div class="rep-pct">${r.p}%</div></div>`).join('');
+  document.getElementById('kcal-resultado').classList.remove('hidden');
+}
+function var_(n){const m={'bg-blue':'#E6F1FB','bg-green':'#E8F5EE'};return m[n]||'#eee'}
+</script>
+</body>
+</html>
